@@ -455,12 +455,15 @@ function inferIsUsingOldVueVersion(tsModule: T_TypeScript, workspacePath: string
 }
 
 function getParsedConfig(tsModule: T_TypeScript, workspacePath: string) {
-  const configFilename =
-    tsModule.findConfigFile(workspacePath, tsModule.sys.fileExists, 'tsconfig.json') ||
-    tsModule.findConfigFile(workspacePath, tsModule.sys.fileExists, 'jsconfig.json');
-  const configJson = (configFilename && tsModule.readConfigFile(configFilename, tsModule.sys.readFile).config) || {
+  const defaultConfig = {
     exclude: defaultIgnorePatterns(tsModule, workspacePath)
   };
+  const configFilenames = ['vetur-tsconfig.json','vetur-jsconfig.json', 'tsconfig.json','jsconfig.json'];
+  
+  const configFilename = configFilenames.map(filename => tsModule.findConfigFile(workspacePath, tsModule.sys.fileExists, filename)).find(foundFile => !!foundFile);
+  logger.logDebug(configFilename ? `Using configuration file ${configFilename}` : 'Using default configuration');
+  const configJson = configFilename ? tsModule.readConfigFile(configFilename, tsModule.sys.readFile).config : defaultConfig;
+
   // existingOptions should be empty since it always takes priority
   return tsModule.parseJsonConfigFileContent(
     configJson,
